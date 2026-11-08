@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Y.A.K | AI Governance Document Summariser</title>
+  <style>
+    :root{--blue:#0a4d9c;--orange:#f47920;--ink:#172033;--muted:#667085;--line:#e5e7eb;--bg:#f5f7fb}
+    *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.55 Arial, sans-serif}
+    .wrap{max-width:1050px;margin:36px auto;padding:0 18px}
+    header{background:linear-gradient(120deg,#0a4d9c,#123d72);color:#fff;padding:26px 30px;border-radius:16px 16px 0 0}
+    header .eyebrow{font-size:12px;letter-spacing:1.4px;text-transform:uppercase;opacity:.85}
+    h1{margin:5px 0 4px;font-size:27px}header p{margin:0;color:#e6efff}
+    main{background:#fff;padding:26px 30px;border:1px solid var(--line);border-top:0;border-radius:0 0 16px 16px;box-shadow:0 12px 35px #14213d0c}
+    .grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}.field{margin-bottom:18px}
+    label{display:block;font-weight:700;margin-bottom:7px}
+    input[type=text],select,textarea{width:100%;padding:12px 13px;border:1px solid #cfd5df;border-radius:9px;font:inherit;background:#fff}
+    textarea{min-height:180px;resize:vertical}input[type=file]{width:100%;padding:12px;border:1px dashed #aab4c3;border-radius:9px;background:#fafbfc}
+    .hint{font-size:12px;color:var(--muted);margin-top:6px}.actions{display:flex;gap:10px;flex-wrap:wrap;margin:8px 0 20px}
+    button{border:0;border-radius:9px;padding:12px 19px;font-weight:700;cursor:pointer}
+    .primary{background:var(--orange);color:#fff}.secondary{background:#edf2f8;color:#23344d}
+    button:disabled{opacity:.55;cursor:not-allowed}.status{font-size:13px;color:var(--muted);margin:10px 0}
+    .result{border:1px solid var(--line);border-radius:12px;padding:18px;background:#fcfdff;min-height:120px;white-space:pre-wrap}
+    .result h2{margin:0 0 12px;font-size:18px}.empty{color:#8791a1}
+    .notice{padding:12px 14px;background:#fff7ed;border-left:4px solid var(--orange);border-radius:7px;font-size:13px;margin:18px 0}
+    footer{font-size:12px;color:var(--muted);text-align:center;margin:16px}
+    @media(max-width:700px){.grid{grid-template-columns:1fr}header,main{padding:20px}.wrap{margin:18px auto}h1{font-size:23px}}
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Y.A.K · Governance Information & Policy Support</div>
+    <h1>AI Governance Document Summariser</h1>
+    <p>Generate clear, citizen-friendly summaries of Bills, policies, budgets and governance documents.</p>
+  </header>
+  <main>
+    <div class="grid">
+      <div class="field">
+        <label for="title">Document title</label>
+        <input id="title" type="text" placeholder="e.g. Finance Act 2026">
+      </div>
+      <div class="field">
+        <label for="audience">Summary audience</label>
+        <select id="audience">
+          <option value="Young people and grassroots communities">Youth and grassroots audiences</option>
+          <option value="General public">General public</option>
+          <option value="Civil society and policy researchers">Civil society and policy researchers</option>
+          <option value="Organisational leadership">Organisational leadership</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="document">Upload a text file (optional)</label>
+      <input id="file" type="file" accept=".txt,.md,.csv">
+      <div class="hint">For this starter version, upload TXT, MD or CSV, or paste extracted document text below. PDF/DOCX extraction can be added on the server.</div>
+    </div>
+
+    <div class="field">
+      <label for="document">Document text</label>
+      <textarea id="document" placeholder="Paste the text of the Bill, policy, budget document or report here..." required></textarea>
+      <div class="hint"><span id="count">0</span> characters. For very long documents, process them in sections or add server-side document extraction and chunking.</div>
+    </div>
+
+    <div class="actions">
+      <button class="primary" id="summarise">Generate summary</button>
+      <button class="secondary" id="clear" type="button">Clear</button>
+      <button class="secondary" id="copy" type="button" disabled>Copy result</button>
+    </div>
+    <div class="status" id="status" role="status" aria-live="polite">Ready. Your API key stays on the server.</div>
+
+    <section>
+      <h2>AI-generated summary</h2>
+      <div class="result empty" id="result">Your summary will appear here.</div>
+    </section>
+
+    <div class="notice"><strong>Researcher validation required:</strong> AI output is a draft. Verify figures, legal provisions, dates and page references against the original document before publication.</div>
+  </main>
+  <footer>Y.A.K AI Governance Support · OpenAI API integration</footer>
+</div>
+<script>
+const textArea = document.getElementById('document');
+const fileInput = document.getElementById('file');
+const result = document.getElementById('result');
+const statusBox = document.getElementById('status');
+const summariseBtn = document.getElementById('summarise');
+const copyBtn = document.getElementById('copy');
+
+textArea.addEventListener('input', () => {
+  document.getElementById('count').textContent = textArea.value.length.toLocaleString();
+});
+fileInput.addEventListener('change', async () => {
+  const file = fileInput.files[0];
+  if (!file) return;
+  if (file.size > 2 * 1024 * 1024) {
+    statusBox.textContent = 'This starter upload supports text files up to 2 MB.';
+    fileInput.value = '';
+    return;
+  }
+  textArea.value = await file.text();
+  textArea.dispatchEvent(new Event('input'));
+  statusBox.textContent = 'Text file loaded. Review the content, then generate the summary.';
+});
+document.getElementById('clear').addEventListener('click', () => {
+  textArea.value = ''; fileInput.value = '';
+  textArea.dispatchEvent(new Event('input'));
+  result.textContent = 'Your summary will appear here.';
+  result.classList.add('empty'); copyBtn.disabled = true;
+  statusBox.textContent = 'Cleared.';
+});
+copyBtn.addEventListener('click', async () => {
+  await navigator.clipboard.writeText(result.textContent);
+  statusBox.textContent = 'Summary copied to clipboard.';
+});
+summariseBtn.addEventListener('click', async () => {
+  const text = textArea.value.trim();
+  if (!text) { statusBox.textContent = 'Paste or upload document text first.'; return; }
+  summariseBtn.disabled = true; copyBtn.disabled = true;
+  result.classList.remove('empty');
+  result.textContent = 'Generating summary…';
+  statusBox.textContent = 'Sending document text securely to the server…';
+  try {
+    const response = await fetch('summarize.php', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({
+        title: document.getElementById('title').value.trim(),
+        audience: document.getElementById('audience').value,
+        document_text: text
+      })
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'The summarisation request failed.');
+    result.textContent = data.summary || 'No summary was returned.';
+    copyBtn.disabled = false;
+    statusBox.textContent = 'Summary generated. Please validate it before publication.';
+  } catch (error) {
+    result.textContent = 'Unable to generate the summary.';
+    result.classList.add('empty');
+    statusBox.textContent = error.message + ' Check that summarize.php is configured and your server can reach the OpenAI API.';
+  } finally {
+    summariseBtn.disabled = false;
+  }
+});
+</script>
+</body>
+</html>
